@@ -1,0 +1,14 @@
+version: "3"
+
+services:
+  db:
+    image: postgres:14.1
+    container_name: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - db-store:/var/lib/postgresql/data
+    env_file:
+      - database.env # 環境変数を外部ファイルから読み込む
+volumes:
+  db-store:
