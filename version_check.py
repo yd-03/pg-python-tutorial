@@ -29,9 +29,10 @@ try:
     sql_str = "SELECT version();"
     cur.execute(sql_str)
     # 結果を取得
-    rows = cur.fetchall()
+    # rows = cur.fetchall() # 全ての結果を取得
+    rows = cur.fetchone()  # 1行だけ取得
     # 結果を出力
-    print(rows)
+    print(rows[0])
 except psycopg2.Error as e:
     # データベースエラーが発生した場合、エラーメッセージを標準エラー出力に出力
     sys.stderr.write(f"Database error: {e}\n")
