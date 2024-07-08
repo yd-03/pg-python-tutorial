@@ -4,6 +4,8 @@ import psycopg2.extras
 from dotenv import load_dotenv
 import sys
 
+import pandas as pd
+
 
 def load_environment_variables():
     """
@@ -75,3 +77,155 @@ def fetch_postgresql_version(conn):
         # カーソルをクローズ（リソースの解放）
         if cur:
             cur.close()
+
+
+def load_sql(file_path):
+    """
+    SQLファイルを読み込む関数
+
+    args:
+        file_path: SQLファイルのパス
+
+    return:
+        str: SQLファイルの中身
+    """
+    with open(file_path, "r") as file:
+        return file.read()
+
+
+def insert_data_from_csv(cursor, insert_sql, csv_file_path, survey_yr):
+    """
+    CSVファイルからデータを読み込み、データベースに挿入する関数
+
+    args:
+        cursor: データベースカーソル
+        insert_sql: 挿入用SQL
+        csv_file_path: CSVファイルのパス
+
+    return:
+        None
+    """
+    # CSVファイルを読み込み
+    df = pd.read_csv(csv_file_path)
+    # CSVの列名をデータベースのカラム名に変換
+    column_mapping = {
+        "Happiness Rank": "overall_rank",
+        "Happiness Score": "score",
+        "Economy (GDP per Capita)": "gdp",
+        "Family": "social_support",
+        "Health (Life Expectancy)": "life_exp",
+        "Freedom": "freedom",
+        "Generosity": "generosity",
+        "Trust (Government Corruption)": "gov_trust",
+        "Country": "country",
+    }
+    df = df.rename(columns=column_mapping)
+
+    # 必要な列のみ抽出し、欠損値を0で埋める
+    df = df[
+        [
+            "country",
+            "overall_rank",
+            "score",
+            "gdp",
+            "social_support",
+            "life_exp",
+            "freedom",
+            "generosity",
+            "gov_trust",
+        ]
+    ]
+
+    # 'survey_yr'列を追加
+    df["survey_yr"] = survey_yr
+
+    # 必要な列を指定し、欠損値を0で埋める
+    df = df[
+        [
+            "survey_yr",
+            "country",
+            "overall_rank",
+            "score",
+            "gdp",
+            "social_support",
+            "life_exp",
+            "freedom",
+            "generosity",
+            "gov_trust",
+        ]
+    ].fillna(0)
+
+    for index, row in df.iterrows():
+        try:
+            cursor.execute(insert_sql, tuple(row))
+        except Exception as e:
+            print(f"Error inserting row {index} from file {csv_file_path}: {e}")
+            print(f"Row data: {row}")
+
+
+def insert_data_from_single_csv(cursor, insert_sql, csv_file_path, survey_yr):
+    """
+    単一のCSVファイルからデータを読み込み、データベースに挿入する関数
+
+    args:
+        cursor: データベースカーソル
+        insert_sql: 挿入用SQL
+        csv_file_path: CSVファイルのパス
+        survey_yr: 調査年
+
+    return:
+        None
+    """
+    df = pd.read_csv(csv_file_path)
+    # CSVの列名をデータベースのカラム名に変換
+    column_mapping = {
+        "Happiness Rank": "overall_rank",
+        "Happiness Score": "score",
+        "Economy (GDP per Capita)": "gdp",
+        "Family": "social_support",
+        "Health (Life Expectancy)": "life_exp",
+        "Freedom": "freedom",
+        "Generosity": "generosity",
+        "Trust (Government Corruption)": "gov_trust",
+        "Country": "country",
+    }
+    df = df.rename(columns=column_mapping)
+    # 必要な列のみ抽出し、欠損値を0で埋める
+    df = df[
+        [
+            "country",
+            "overall_rank",
+            "score",
+            "gdp",
+            "social_support",
+            "life_exp",
+            "freedom",
+            "generosity",
+            "gov_trust",
+        ]
+    ]
+    # 'survey_yr'列を追加
+    df["survey_yr"] = survey_yr
+    # 必要な列を指定し、欠損値を0で埋める
+    df = df[
+        [
+            "survey_yr",
+            "country",
+            "overall_rank",
+            "score",
+            "gdp",
+            "social_support",
+            "life_exp",
+            "freedom",
+            "generosity",
+            "gov_trust",
+        ]
+    ].fillna(0)
+    for index, row in df.iterrows():
+        try:
+            cursor.execute(insert_sql, tuple(row))
+        except Exception as e:
+            print(f"Error inserting row {index} from file {csv_file_path}: {e}")
+            print(f"Row data: {row}")
+            cursor.connection.rollback()  # トランザクションをロールバック
+            cursor.connection.commit()  # トランザクションを再開
