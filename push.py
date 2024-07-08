@@ -14,7 +14,7 @@ create_table_sql = load_sql("./sql/create_table.sql")
 insert_sql = load_sql("./sql/insert_data.sql")
 
 # CSVファイルを読み込む
-csv_file_path = "./results.csv"
+csv_file_path = "./data/results.csv"
 df = pd.read_csv(csv_file_path)
 
 try:
